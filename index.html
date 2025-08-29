@@ -4,162 +4,132 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITRA Race Results Viewer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Custom styles for a better look and feel */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 2em;
-            background-color: #f4f4f9;
-            color: #333;
+            font-family: 'Inter', sans-serif;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        /* Custom scrollbar for a modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
         }
-        p {
-            text-align: center;
-            margin-bottom: 1rem;
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 10px;
         }
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            align-items: center;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
         }
-        .filters {
-            display: flex;
-            flex-grow: 1;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        input[type="text"], select, button {
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        button {
-             cursor: pointer;
-             color: white;
-             border: none;
-        }
-        #resetButton { background-color: #e74c3c; }
-        #resetButton:hover { background-color: #c0392b; }
-        #exportButton { background-color: #27ae60; }
-        #exportButton:hover { background-color: #229954; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px 15px;
-            text-align: left;
-            vertical-align: middle;
-        }
-        th {
-            background-color: #3498db;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            position: relative;
-        }
+        /* Style for the sort indicator */
         th .sort-indicator {
-            float: right;
-            opacity: 0.7;
-        }
-        tbody tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        tbody tr:hover {
-            background-color: #e9ecef;
-        }
-        a {
-            color: #2980b9;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .pagination-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 1.5rem;
-            gap: 1rem;
-        }
-        .pagination-controls button {
-             background-color: #3498db;
-        }
-         .pagination-controls button:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
+            opacity: 0.8;
+            transition: opacity 0.2s ease-in-out;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-200 antialiased">
 
-    <div class="container">
-        <h1>ITRA Race Results Viewer 🏆</h1>
-        <p>Yarış sonuçları <code>itra_results.csv</code> dosyasından yüklenir. Sonuçları filtreleyebilir, sıralayabilir ve dışa aktarabilirsiniz.</p>
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">ITRA Race Results Viewer 🏆</h1>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Yarış sonuçları <code class="bg-gray-700 text-emerald-400 px-2 py-1 rounded-md text-sm">itra_results.csv</code> dosyasından yüklenir. Sonuçları anında filtreleyebilir, sıralayabilir ve dışa aktarabilirsiniz.
+            </p>
+        </div>
 
-        <div class="controls">
-            <div class="filters">
-                <input type="text" id="filterInput" placeholder="Filter results...">
-                <select id="countryFilter">
-                    <option value="">All Countries</option>
-                </select>
-                <select id="genderFilter">
-                    <option value="">All Genders</option>
-                    <option value="F">Female</option>
-                    <option value="M">Male</option>
-                </select>
-            </div>
-             <div class="actions">
-                <button id="exportButton">CSV Olarak Dışa Aktar</button>
-                <button id="resetButton">Sıfırla</button>
+        <!-- Controls Section -->
+        <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 sticky top-4 z-10 border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Search Input -->
+                <div class="relative">
+                     <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </span>
+                    <input type="text" id="filterInput" placeholder="Herhangi bir alanda ara..." class="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                </div>
+                
+                <!-- Filters -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:col-span-1">
+                    <select id="countryFilter" class="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                        <option value="">Tüm Ülkeler</option>
+                    </select>
+                    <select id="genderFilter" class="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                        <option value="">Tüm Cinsiyetler</option>
+                        <option value="F">Kadın</option>
+                        <option value="M">Erkek</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-start md:justify-end gap-4">
+                    <button id="exportButton" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        CSV Aktar
+                    </button>
+                    <button id="resetButton" class="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l16 16"></path></svg>
+                        Sıfırla
+                    </button>
+                </div>
             </div>
         </div>
 
-        <table id="resultsTable">
-            <thead>
-                <tr>
-                    <th data-column="raceYear">UTMB Race Year <span class="sort-indicator"></span></th>
-                    <th data-column="name">Name/Surname <span class="sort-indicator"></span></th>
-                    <th data-column="country">Country <span class="sort-indicator"></span></th>
-                    <th data-column="time">Time <span class="sort-indicator"></span></th>
-                    <th data-column="ageGroup">Age-Group <span class="sort-indicator"></span></th>
-                    <th data-column="gender">Gender <span class="sort-indicator"></span></th>
-                    <th data-column="raceScore">Race Score <span class="sort-indicator"></span></th>
-                </tr>
-            </thead>
-            <tbody id="resultsBody">
-            </tbody>
-        </table>
+        <!-- Table Section -->
+        <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700">
+            <div class="overflow-x-auto">
+                <table id="resultsTable" class="min-w-full text-sm">
+                    <thead class="bg-gray-700/50">
+                        <tr>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="raceYear">Yıl <span class="sort-indicator"></span></th>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="name">İsim/Soyisim <span class="sort-indicator"></span></th>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="country">Ülke <span class="sort-indicator"></span></th>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="time">Süre <span class="sort-indicator"></span></th>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="ageGroup">Yaş Grubu <span class="sort-indicator"></span></th>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="gender">Cinsiyet <span class="sort-indicator"></span></th>
+                            <th class="py-3 px-5 text-left font-semibold text-gray-300 cursor-pointer" data-column="raceScore">Yarış Skoru <span class="sort-indicator"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody" class="divide-y divide-gray-700">
+                        <!-- Rows will be injected here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
         
-        <div class="pagination-controls">
-            <button id="prevPageButton">&laquo; Geri</button>
-            <span id="pageInfo"></span>
-            <button id="nextPageButton">İleri &raquo;</button>
-            <select id="rowsPerPageSelect">
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="all">All</option>
-            </select>
+        <!-- Pagination Controls -->
+        <div class="flex flex-col sm:flex-row items-center justify-between mt-8 text-gray-400">
+             <div class="flex items-center gap-2 mb-4 sm:mb-0">
+                <span>Sayfa başına:</span>
+                <select id="rowsPerPageSelect" class="bg-gray-700 border border-gray-600 rounded-lg py-1 px-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="all">Tümü</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="prevPageButton" class="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed disabled:text-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    Geri
+                </button>
+                <span id="pageInfo" class="font-semibold"></span>
+                <button id="nextPageButton" class="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed disabled:text-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+                    İleri
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
         </div>
+
     </div>
 
     <script>
@@ -189,7 +159,7 @@
             }
         });
         document.getElementById('nextPageButton').addEventListener('click', () => {
-             const { totalPages } = getFilteredRows();
+            const { totalPages } = getFilteredRows();
             if (currentPage < totalPages) {
                 currentPage++;
                 renderTable();
@@ -211,6 +181,8 @@
         
         // --- DATA HANDLING ---
         async function loadDataFromCsv() {
+             const tableBody = document.getElementById('resultsBody');
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 px-5 text-gray-400">Veriler yükleniyor...</td></tr>`;
             try {
                 const response = await fetch('itra_results.csv');
                 if (!response.ok) {
@@ -236,11 +208,10 @@
                 }).filter(r => r.name); // Filter out empty lines
 
                 updateCountryFilter();
-                sortTable('time', 'asc');
+                sortTable('time', 'asc'); // Default sort
             } catch (error) {
                 console.error('CSV dosyası işlenirken hata:', error);
-                const tableBody = document.getElementById('resultsBody');
-                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">${error.message}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 px-5 text-rose-400">${error.message}</td></tr>`;
             }
         }
 
@@ -275,6 +246,12 @@
             const tableBody = document.getElementById('resultsBody');
             tableBody.innerHTML = ''; // Clear the table
 
+            if (visibleRows.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 px-5 text-gray-400">Filtrelerle eşleşen sonuç bulunamadı.</td></tr>`;
+                updatePaginationControls(0, 0);
+                return;
+            }
+
             if (currentPage > totalPages && totalPages > 0) {
                 currentPage = totalPages;
             }
@@ -285,21 +262,28 @@
 
             pageRowsData.forEach(runner => {
                 const row = tableBody.insertRow();
+                row.className = 'hover:bg-gray-700 transition-colors duration-200';
                 row.innerHTML = `
-                    <td>${runner.raceYear || ''}</td>
-                    <td>${runner.itraLink && runner.itraLink !== '#' ? `<a href="${runner.itraLink}" target="_blank">${runner.name}</a>` : runner.name || ''}</td>
-                    <td>${runner.country || ''}</td>
-                    <td>${runner.time || ''}</td>
-                    <td>${runner.ageGroup || ''}</td>
-                    <td>${runner.gender || ''}</td>
-                    <td>${runner.raceScore || ''}</td>
+                    <td class="py-3 px-5">${runner.raceYear || ''}</td>
+                    <td class="py-3 px-5 font-medium text-white">${runner.itraLink && runner.itraLink !== '#' ? `<a href="${runner.itraLink}" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition">${runner.name}</a>` : runner.name || ''}</td>
+                    <td class="py-3 px-5">${runner.country || ''}</td>
+                    <td class="py-3 px-5">${runner.time || ''}</td>
+                    <td class="py-3 px-5">${runner.ageGroup || ''}</td>
+                    <td class="py-3 px-5">${runner.gender || ''}</td>
+                    <td class="py-3 px-5 text-white font-semibold">${runner.raceScore || ''}</td>
                 `;
             });
             updatePaginationControls(totalPages, visibleRows.length);
         }
 
         function updatePaginationControls(totalPages, totalVisibleRows) {
-            document.getElementById('pageInfo').textContent = `Sayfa ${currentPage} / ${totalPages}`;
+            const pageInfo = document.getElementById('pageInfo');
+            if (totalPages > 0) {
+                pageInfo.textContent = `Sayfa ${currentPage} / ${totalPages}`;
+            } else {
+                pageInfo.textContent = 'Sayfa 0 / 0';
+            }
+            
             document.getElementById('prevPageButton').disabled = currentPage === 1;
             document.getElementById('nextPageButton').disabled = currentPage === totalPages || totalPages === 0;
             document.getElementById('rowsPerPageSelect').style.display = totalVisibleRows > 0 ? '' : 'none';
@@ -310,7 +294,10 @@
             const selectedValue = countryFilter.value;
             const countrySet = new Set(allRunnersData.map(r => r.country).filter(Boolean));
             const sortedCountries = Array.from(countrySet).sort();
-            countryFilter.innerHTML = '<option value="">All Countries</option>';
+            
+            // Keep the first "All Countries" option
+            countryFilter.innerHTML = '<option value="">Tüm Ülkeler</option>'; 
+            
             sortedCountries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country;
@@ -321,18 +308,17 @@
         }
 
         function resetProcess() {
-            allRunnersData = [];
             document.getElementById('filterInput').value = '';
             document.getElementById('countryFilter').value = '';
             document.getElementById('genderFilter').value = '';
-            updateCountryFilter();
             currentPage = 1;
-            renderTable();
+            
             document.querySelectorAll('#resultsTable th').forEach(header => {
-                 header.dataset.sortDir = '';
-                 header.querySelector('.sort-indicator').textContent = '';
+                header.dataset.sortDir = '';
+                header.querySelector('.sort-indicator').textContent = '';
             });
-             // Optionally, reload the original data by calling the load function again
+            
+            // Reload original data and sort by default
             loadDataFromCsv();
         }
 
@@ -375,7 +361,7 @@
             const headers = ["UTMB Race Year", "Name/Surname", "ITRA Link", "Country", "Time", "Age-Group", "Gender", "Race Score"].map(h => `"${h}"`).join(',');
             
             const rows = visibleRows.map(runner => {
-                 return [
+                return [
                     runner.raceYear,
                     runner.name,
                     runner.itraLink,
@@ -384,21 +370,18 @@
                     runner.ageGroup,
                     runner.gender,
                     runner.raceScore
-                 ].map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',');
+                ].map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',');
             });
             
             const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "itra_results.csv");
+            link.setAttribute("download", "filtered_itra_results.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
-
     </script>
-
 </body>
 </html>
-
