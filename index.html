@@ -257,7 +257,7 @@
                 let textMatch = true;
                 if (textFilter) {
                     textMatch = Object.values(runner).some(val => 
-                        String(val).toUpperCase().includes(textFilter)
+                        val && String(val).toUpperCase().includes(textFilter)
                     );
                 }
                 
@@ -286,13 +286,13 @@
             pageRowsData.forEach(runner => {
                 const row = tableBody.insertRow();
                 row.innerHTML = `
-                    <td>${runner.raceYear}</td>
-                    <td>${runner.itraLink !== '#' ? `<a href="${runner.itraLink}" target="_blank">${runner.name}</a>` : runner.name}</td>
-                    <td>${runner.country}</td>
-                    <td>${runner.time}</td>
-                    <td>${runner.ageGroup}</td>
-                    <td>${runner.gender}</td>
-                    <td>${runner.raceScore}</td>
+                    <td>${runner.raceYear || ''}</td>
+                    <td>${runner.itraLink && runner.itraLink !== '#' ? `<a href="${runner.itraLink}" target="_blank">${runner.name}</a>` : runner.name || ''}</td>
+                    <td>${runner.country || ''}</td>
+                    <td>${runner.time || ''}</td>
+                    <td>${runner.ageGroup || ''}</td>
+                    <td>${runner.gender || ''}</td>
+                    <td>${runner.raceScore || ''}</td>
                 `;
             });
             updatePaginationControls(totalPages, visibleRows.length);
@@ -308,7 +308,7 @@
         function updateCountryFilter() {
             const countryFilter = document.getElementById('countryFilter');
             const selectedValue = countryFilter.value;
-            const countrySet = new Set(allRunnersData.map(r => r.country));
+            const countrySet = new Set(allRunnersData.map(r => r.country).filter(Boolean));
             const sortedCountries = Array.from(countrySet).sort();
             countryFilter.innerHTML = '<option value="">All Countries</option>';
             sortedCountries.forEach(country => {
@@ -345,10 +345,10 @@
 
                 if (columnKey === 'time') {
                     comparison = timeToSeconds(valA) - timeToSeconds(valB);
-                } else if (!isNaN(valA) && !isNaN(valB) && valA !== '' && valB !== '') {
+                } else if (!isNaN(valA) && !isNaN(valB) && valA !== '' && valB !== '' && valA !== null && valB !== null) {
                     comparison = parseFloat(valA) - parseFloat(valB);
                 } else {
-                    comparison = String(valA).toLowerCase().localeCompare(String(valB).toLowerCase());
+                    comparison = String(valA || '').toLowerCase().localeCompare(String(valB || '').toLowerCase());
                 }
                 
                 return direction === 'asc' ? comparison : -comparison;
@@ -364,7 +364,7 @@
         }
         
         function timeToSeconds(timeStr) {
-            if (timeStr.toUpperCase() === 'DNF') return Infinity;
+            if (!timeStr || timeStr.toUpperCase() === 'DNF') return Infinity;
             const parts = timeStr.split(':').map(Number);
             return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : Infinity;
         }
@@ -384,7 +384,7 @@
                     runner.ageGroup,
                     runner.gender,
                     runner.raceScore
-                 ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
+                 ].map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',');
             });
             
             const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
