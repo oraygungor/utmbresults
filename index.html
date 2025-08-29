@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITRA Race Results Viewer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 2em;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        p {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .filters {
+            display: flex;
+            flex-grow: 1;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        input[type="text"], select, button {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+             cursor: pointer;
+             color: white;
+             border: none;
+        }
+        #resetButton { background-color: #e74c3c; }
+        #resetButton:hover { background-color: #c0392b; }
+        #exportButton { background-color: #27ae60; }
+        #exportButton:hover { background-color: #229954; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+        th .sort-indicator {
+            float: right;
+            opacity: 0.7;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tbody tr:hover {
+            background-color: #e9ecef;
+        }
+        a {
+            color: #2980b9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 1.5rem;
+            gap: 1rem;
+        }
+        .pagination-controls button {
+             background-color: #3498db;
+        }
+         .pagination-controls button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ITRA Race Results Viewer 🏆</h1>
+        <p>Yarış sonuçları <code>itra_results.csv</code> dosyasından yüklenir. Sonuçları filtreleyebilir, sıralayabilir ve dışa aktarabilirsiniz.</p>
+
+        <div class="controls">
+            <div class="filters">
+                <input type="text" id="filterInput" placeholder="Filter results...">
+                <select id="countryFilter">
+                    <option value="">All Countries</option>
+                </select>
+                <select id="genderFilter">
+                    <option value="">All Genders</option>
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                </select>
+            </div>
+             <div class="actions">
+                <button id="exportButton">CSV Olarak Dışa Aktar</button>
+                <button id="resetButton">Sıfırla</button>
+            </div>
+        </div>
+
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th data-column="raceYear">UTMB Race Year <span class="sort-indicator"></span></th>
+                    <th data-column="name">Name/Surname <span class="sort-indicator"></span></th>
+                    <th data-column="country">Country <span class="sort-indicator"></span></th>
+                    <th data-column="time">Time <span class="sort-indicator"></span></th>
+                    <th data-column="ageGroup">Age-Group <span class="sort-indicator"></span></th>
+                    <th data-column="gender">Gender <span class="sort-indicator"></span></th>
+                    <th data-column="raceScore">Race Score <span class="sort-indicator"></span></th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+            </tbody>
+        </table>
+        
+        <div class="pagination-controls">
+            <button id="prevPageButton">&laquo; Geri</button>
+            <span id="pageInfo"></span>
+            <button id="nextPageButton">İleri &raquo;</button>
+            <select id="rowsPerPageSelect">
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        let allRunnersData = [];
+        let currentPage = 1;
+        let rowsPerPage = 20;
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', loadDataFromCsv);
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('filterInput').addEventListener('keyup', () => { currentPage = 1; renderTable(); });
+        document.getElementById('countryFilter').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('genderFilter').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('resetButton').addEventListener('click', resetProcess);
+        document.getElementById('exportButton').addEventListener('click', exportToCsv);
+        
+        document.getElementById('rowsPerPageSelect').addEventListener('change', (e) => {
+            rowsPerPage = e.target.value === 'all' ? Infinity : parseInt(e.target.value);
+            currentPage = 1;
+            renderTable();
+        });
+        document.getElementById('prevPageButton').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+        document.getElementById('nextPageButton').addEventListener('click', () => {
+             const { totalPages } = getFilteredRows();
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        document.querySelectorAll('#resultsTable th').forEach(header => {
+            header.addEventListener('click', () => {
+                const columnKey = header.dataset.column;
+                const currentDir = header.dataset.sortDir || 'desc';
+                const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+                
+                document.querySelectorAll('#resultsTable th').forEach(h => h.dataset.sortDir = '');
+                
+                header.dataset.sortDir = newDir;
+                sortTable(columnKey, newDir);
+            });
+        });
+        
+        // --- DATA HANDLING ---
+        async function loadDataFromCsv() {
+            try {
+                const response = await fetch('itra_results.csv');
+                if (!response.ok) {
+                    throw new Error('itra_results.csv dosyası bulunamadı veya yüklenemedi. Lütfen dosyanın bu HTML dosyasıyla aynı dizinde olduğundan emin olun.');
+                }
+                const csvText = await response.text();
+                
+                const lines = csvText.trim().split('\n');
+                lines.shift(); // Skip header
+
+                allRunnersData = lines.map(line => {
+                    const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                    return {
+                        raceYear: values[0],
+                        name: values[1],
+                        itraLink: values[2],
+                        country: values[3],
+                        time: values[4],
+                        ageGroup: values[5],
+                        gender: values[6],
+                        raceScore: values[7]
+                    };
+                }).filter(r => r.name); // Filter out empty lines
+
+                updateCountryFilter();
+                sortTable('time', 'asc');
+            } catch (error) {
+                console.error('CSV dosyası işlenirken hata:', error);
+                const tableBody = document.getElementById('resultsBody');
+                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">${error.message}</td></tr>`;
+            }
+        }
+
+        // --- RENDERING, FILTERING & RESET ---
+        function getFilteredRows() {
+            const textFilter = document.getElementById('filterInput').value.toUpperCase();
+            const countryFilter = document.getElementById('countryFilter').value;
+            const genderFilter = document.getElementById('genderFilter').value;
+
+            const filteredData = allRunnersData.filter(runner => {
+                const countryMatch = !countryFilter || runner.country === countryFilter;
+                const genderMatch = !genderFilter || runner.gender === genderFilter;
+                
+                let textMatch = true;
+                if (textFilter) {
+                    textMatch = Object.values(runner).some(val => 
+                        String(val).toUpperCase().includes(textFilter)
+                    );
+                }
+                
+                return countryMatch && genderMatch && textMatch;
+            });
+
+            return {
+                visibleRows: filteredData,
+                totalPages: rowsPerPage === Infinity ? 1 : Math.ceil(filteredData.length / rowsPerPage)
+            };
+        }
+        
+        function renderTable() {
+            const { visibleRows, totalPages } = getFilteredRows();
+            const tableBody = document.getElementById('resultsBody');
+            tableBody.innerHTML = ''; // Clear the table
+
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+            }
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = (rowsPerPage === Infinity) ? visibleRows.length : (start + rowsPerPage);
+            const pageRowsData = visibleRows.slice(start, end);
+
+            pageRowsData.forEach(runner => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${runner.raceYear}</td>
+                    <td>${runner.itraLink !== '#' ? `<a href="${runner.itraLink}" target="_blank">${runner.name}</a>` : runner.name}</td>
+                    <td>${runner.country}</td>
+                    <td>${runner.time}</td>
+                    <td>${runner.ageGroup}</td>
+                    <td>${runner.gender}</td>
+                    <td>${runner.raceScore}</td>
+                `;
+            });
+            updatePaginationControls(totalPages, visibleRows.length);
+        }
+
+        function updatePaginationControls(totalPages, totalVisibleRows) {
+            document.getElementById('pageInfo').textContent = `Sayfa ${currentPage} / ${totalPages}`;
+            document.getElementById('prevPageButton').disabled = currentPage === 1;
+            document.getElementById('nextPageButton').disabled = currentPage === totalPages || totalPages === 0;
+            document.getElementById('rowsPerPageSelect').style.display = totalVisibleRows > 0 ? '' : 'none';
+        }
+
+        function updateCountryFilter() {
+            const countryFilter = document.getElementById('countryFilter');
+            const selectedValue = countryFilter.value;
+            const countrySet = new Set(allRunnersData.map(r => r.country));
+            const sortedCountries = Array.from(countrySet).sort();
+            countryFilter.innerHTML = '<option value="">All Countries</option>';
+            sortedCountries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countryFilter.appendChild(option);
+            });
+            countryFilter.value = selectedValue;
+        }
+
+        function resetProcess() {
+            allRunnersData = [];
+            document.getElementById('filterInput').value = '';
+            document.getElementById('countryFilter').value = '';
+            document.getElementById('genderFilter').value = '';
+            updateCountryFilter();
+            currentPage = 1;
+            renderTable();
+            document.querySelectorAll('#resultsTable th').forEach(header => {
+                 header.dataset.sortDir = '';
+                 header.querySelector('.sort-indicator').textContent = '';
+            });
+             // Optionally, reload the original data by calling the load function again
+            loadDataFromCsv();
+        }
+
+        // --- SORTING ---
+        function sortTable(columnKey, direction) {
+            allRunnersData.sort((a, b) => {
+                const valA = a[columnKey];
+                const valB = b[columnKey];
+                let comparison = 0;
+
+                if (columnKey === 'time') {
+                    comparison = timeToSeconds(valA) - timeToSeconds(valB);
+                } else if (!isNaN(valA) && !isNaN(valB) && valA !== '' && valB !== '') {
+                    comparison = parseFloat(valA) - parseFloat(valB);
+                } else {
+                    comparison = String(valA).toLowerCase().localeCompare(String(valB).toLowerCase());
+                }
+                
+                return direction === 'asc' ? comparison : -comparison;
+            });
+            
+            document.querySelectorAll('#resultsTable th').forEach(header => {
+                const indicator = header.querySelector('.sort-indicator');
+                indicator.textContent = header.dataset.column === columnKey ? (direction === 'asc' ? ' ▲' : ' ▼') : '';
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+        
+        function timeToSeconds(timeStr) {
+            if (timeStr.toUpperCase() === 'DNF') return Infinity;
+            const parts = timeStr.split(':').map(Number);
+            return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : Infinity;
+        }
+        
+        // --- EXPORT ---
+        function exportToCsv() {
+            const { visibleRows } = getFilteredRows();
+            const headers = ["UTMB Race Year", "Name/Surname", "ITRA Link", "Country", "Time", "Age-Group", "Gender", "Race Score"].map(h => `"${h}"`).join(',');
+            
+            const rows = visibleRows.map(runner => {
+                 return [
+                    runner.raceYear,
+                    runner.name,
+                    runner.itraLink,
+                    runner.country,
+                    runner.time,
+                    runner.ageGroup,
+                    runner.gender,
+                    runner.raceScore
+                 ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
+            });
+            
+            const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "itra_results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+    </script>
+
+</body>
+</html>
+
